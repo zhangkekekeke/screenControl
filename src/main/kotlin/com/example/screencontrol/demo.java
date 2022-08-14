@@ -20,6 +20,10 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacv.*;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,7 +32,7 @@ import java.util.TimerTask;
  * @date 2022-08-05 09:06
  * @description
  */
-public class demo  extends Application {
+public class demo extends Application {
     private static final int frameRate = 10;// 录制的帧率
     private static boolean isStop = false;
 
@@ -58,10 +62,12 @@ public class demo  extends Application {
         primaryStage.setWidth(800);
         primaryStage.show();
 
+        File file = new File("desktop");
+        if (!file.exists()) file.createNewFile();
         // window 建议使用 FFmpegFrameGrabber("desktop") 进行屏幕捕捉
-        FrameGrabber grabber = new FFmpegFrameGrabber("desktop");
-        //FrameGrabber grabber = new FFmpegFrameGrabber("desktop");
-        grabber.setFormat("gdigrab");
+        FrameGrabber grabber = new FFmpegFrameGrabber(new FileInputStream(file));
+        FFmpegLogCallback.set();
+        grabber.setFormat("h264");
         grabber.setFrameRate(frameRate);
         // 捕获指定区域，不设置则为全屏
         //grabber.setImageHeight(600);
@@ -69,8 +75,14 @@ public class demo  extends Application {
         grabber.setOption("offset_y", "200");//必须设置了大小才能指定区域起点，参数可参考 FFmpeg 入参
         grabber.start();
 
+        File movie = new File("D://demo.avi");
+        if (!movie.exists()) {
+            movie.mkdirs();
+            movie.createNewFile();
+        }
         // 用于存储视频 , 先调用stop，在释放，就会在指定位置输出文件，，这里我保存到D盘
-        FrameRecorder recorder = FrameRecorder.createDefault("D://demo.avi", grabber.getImageWidth(), grabber.getImageHeight());
+        FrameRecorder recorder = new FFmpegFrameRecorder(new FileOutputStream(movie), grabber.getImageWidth(), grabber.getImageHeight());
+        recorder.setFormat("avi");//只支持flv，mp4，3gp和avi四种格式，
         recorder.setFrameRate(frameRate);
         recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);// 编码，使用编码能让视频占用内存更小，根据实际自行选择
         recorder.start();
@@ -118,7 +130,7 @@ public class demo  extends Application {
         });
     }
 
-//  测试
+    //  测试
     public static void main(String[] args) throws Exception {
         launch(args);
     }
